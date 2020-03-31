@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { GraphQLClient } from 'graphql-request';
 
+
 export const BASE_URL = 
   process.env.NODE_ENV === "production" ? 
     "<insert-production-url>" :

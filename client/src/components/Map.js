@@ -5,9 +5,17 @@ import differenceInMinutes from 'date-fns/difference_in_minutes';
 import Button from "@material-ui/core/Button";
 import DeleteIcon from "@material-ui/icons/DeleteTwoTone";
 import { Typography } from "@material-ui/core";
+import { Subscription } from 'react-apollo';
+import { unstable_useMediaQuery as useMediaQuery } from '@material-ui/core/useMediaQuery';
+
 import { useClient } from '../client';
 import { DELETE_PIN_MUTATION } from '../graphql/mutations';
 import { GET_PINS_QUERY } from '../graphql/queries';
+import { 
+  PIN_ADDED_SUBSCRIPTION,
+  PIN_UPDATED_SUBSCRIPTION,
+  PIN_DELETED_SUBSCRIPTION,
+} from '../graphql/subscriptions';
 import Blog from './Blog';
 import PinIcon from './PinIcon';
 import Context from '../context'
@@ -20,6 +28,9 @@ const INITIAL_VIEWPORT = {
 
 const Map = ({ classes }) => {
   const client = useClient();
+
+  const mobileSize = useMediaQuery('(max-width: 650px)');
+
   const { state, dispatch } = useContext(Context);
 
   const [viewport, setViewport] = useState(INITIAL_VIEWPORT);
@@ -60,8 +71,7 @@ const Map = ({ classes }) => {
 
   const handleDeletePin = async pin => {
     const variables = { pinId: pin._id }
-    const { deletePin } = await client.request(DELETE_PIN_MUTATION, variables);
-    dispatch({ type: 'DELETE_PIN', payload: deletePin });
+    await client.request(DELETE_PIN_MUTATION, variables);
     setPop(null);
   }
 
@@ -80,13 +90,14 @@ const Map = ({ classes }) => {
   }
 
   return (
-    <div className={classes.root}>
+    <div className={mobileSize ? classes.rootMobile : classes.root}>
       <ReactMapGL
         mapboxApiAccessToken={process.env.REACT_APP_MAP_BOX_TOKEN}
         width="100vw"
         height="calc(100vh - 64px)"
         mapStyle="mapbox://styles/mapbox/streets-v9"
         onViewportChange={newViewport => setViewport(newViewport)}
+        scrollZoom={!mobileSize}
         onClick={mapOnClick}
         {...viewport}
       >
@@ -100,8 +111,6 @@ const Map = ({ classes }) => {
           <Marker
             latitude={usePosition.latitude}
             longitude={usePosition.longitude}
-            offestLeft={-19}
-            offsetTop={-37}
           >
             <PinIcon size={40} color="red"/>
           </Marker>
@@ -161,6 +170,28 @@ const Map = ({ classes }) => {
           </Popup>
         )}
       </ReactMapGL>
+
+      <Subscription
+         subscription={PIN_ADDED_SUBSCRIPTION}
+        onSubscriptionData={({ subscriptionData }) => { 
+          const { pinAdded } = subscriptionData.data;
+          dispatch({ type: 'CREATE_PIN',  payload: pinAdded })
+        } }
+      />
+      <Subscription
+        subscription={PIN_UPDATED_SUBSCRIPTION}
+        onSubscriptionData={({ subscriptionData }) => { 
+          const { pinUpdated } = subscriptionData.data;
+          dispatch({ type: 'CREATE_COMMENT',  payload: pinUpdated })
+        } }
+      />
+      <Subscription
+        subscription={PIN_DELETED_SUBSCRIPTION}
+        onSubscriptionData={({ subscriptionData }) => { 
+          const { pinDeleted } = subscriptionData.data;
+          dispatch({ type: 'DELETE_PIN',  payload: pinDeleted })
+        } }
+      />
 
       <Blog />
     </div>
