@@ -62,6 +62,11 @@ const Map = ({ classes }) => {
 
   const [popup, setPop] = useState(null);
 
+  useEffect(() => {
+    const pinExist = popup && state.pins.findIndex(pin => pin._id === popup._id) > -1;
+    if(!pinExist) setPop(null);
+  }, [state.pins.length]);
+
   function handleSelectPin(pin) {
     setPop(pin);
     dispatch({ type: 'SET_PIN', payload: pin });
